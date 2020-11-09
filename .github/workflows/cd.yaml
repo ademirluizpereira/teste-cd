@@ -1,14 +1,23 @@
-name: deploy
-on: 
-    push: 
+name: Deploy
+on:
+    push:
         branches: [main]
-jobs: 
-    build:
-        runs-on: ubuntu
 
+jobs:
+    build:
+        runs-on: ubuntu-latest
+        
         steps:
 
-        - uses: actions/checkou@v2
+        - uses: actions/checkout@v2
+
+        - name: Docker meta
+          id: docker_meta
+          uses: crazy-max/ghaction-docker-meta@v1
+          with:
+            images: ademirpereira/teste-cd
+            tag-sha: true
+
 
         - name: QEMU
           uses: docker/setup-qemu-action@v1
@@ -16,24 +25,24 @@ jobs:
         - name: Docker Buildx
           uses: docker/setup-buildx-action@v1
 
-        - name: login to docker hub.
+        - name: Login to Dockerhub
           uses: docker/login-action@v1
-          with: 
-            username: $ {{ secrets.DOCKERHUB_USERNAME }}
-            password: $ {{ secrets.DOCKERHUB_TOKEN }}
-        - name: bump version 
+          with:
+            username: ${{ secrets.DOCKERHUB_USERNAME}}
+            password: ${{ secrets.DOCKERHUB_TOKEN}}
+
+        - name: Bump version and push tag
           id: tagging
           uses: mathieudutour/github-tag-action@v4.5
-          with: 
-            github_token: $ {{ secrets.GITHUB_TOKEN }}
-        
-        - name: buld and push 
+          with:
+            github_token: ${{ secrets.GITHUB_TOKEN }}
+
+        - name: Build and push
           id: docker_build
           uses: docker/build-push-action@v2
-          with: 
+          with:
             push: true
             context: .
             file: ./Dockerfile
-            tags: ademirpereira/teste-cd-b:$ {{ steps.tagging.outputs.new_version }}
-
-        
+            platforms: linux/amd64,linux/arm64,linux/386
+            tags: ademirpereira/teste-cd:${{ steps.tagging.outputs.new_version }}
